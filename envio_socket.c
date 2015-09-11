@@ -46,7 +46,7 @@ int main()
   destAddr.sll_family = htons(PF_PACKET);
   destAddr.sll_protocol = htons(ETH_P_ALL);
   destAddr.sll_halen = 6;
-  destAddr.sll_ifindex = 2;  /* indice da interface pela qual os pacotes serao enviados. Eh necess·rio conferir este valor. */
+  destAddr.sll_ifindex = 2;  /* indice da interface pela qual os pacotes serao enviados. Eh necess√°rio conferir este valor. */
   memcpy(&(destAddr.sll_addr), destMac, MAC_ADDR_LEN);
 
   /* Cabecalho Ethernet */
