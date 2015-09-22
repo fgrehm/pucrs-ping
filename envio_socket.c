@@ -24,6 +24,7 @@ char *write_byte(char *bufferptr, unsigned char byte);
 char *write_ip_bytes(char *bufferptr, char *ip_str);
 char *write_ethernet(char *bufferptr, MacAddress dest_mac, MacAddress local_mac);
 char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip);
+char *write_icmp(char *bufferptr);
 int send_packet(int sock_fd, MacAddress dest_mac, char *buffer, int packet_size);
 
 int main()
@@ -50,15 +51,7 @@ int main()
   // Prepare packet data as needed
   bufferptr = write_ethernet(bufferptr, dest_mac, local_mac);
   bufferptr = write_ipv4(bufferptr, local_ip, dest_ip);
-
-  /* ICMP */
-  /* Type (request) */
-  bufferptr = write_byte(bufferptr, 0x08);
-  /* Code (zero) */
-  bufferptr = write_byte(bufferptr, 0x00);
-  /* TODO: Proper checksum */
-  bufferptr = write_byte(bufferptr, 0xf7);
-  bufferptr = write_byte(bufferptr, 0xff);
+  bufferptr = write_icmp(bufferptr);
 
   // Zero out...
   memset(bufferptr, 0, 64);
@@ -68,7 +61,6 @@ int main()
       printf("ERROR sending packet!\n");
       exit(1);
   }
-
   printf("Send success (%d).\n", send_result);
 }
 
@@ -147,4 +139,16 @@ char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
 
   /* Destination IP */
   return write_ip_bytes(bufferptr, dest_ip);
+}
+
+char *write_icmp(char *bufferptr) {
+  /* Type (request) */
+  bufferptr = write_byte(bufferptr, 0x08);
+
+  /* Code (zero) */
+  bufferptr = write_byte(bufferptr, 0x00);
+
+  /* TODO: Proper checksum */
+  bufferptr = write_byte(bufferptr, 0xf7);
+  return write_byte(bufferptr, 0xff);
 }
