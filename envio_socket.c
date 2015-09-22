@@ -11,6 +11,7 @@
 
 #define ETHERTYPE_LEN 2
 #define MAC_ADDR_LEN 6
+#define IP_ADDR_LEN 4
 #define BUFFER_LEN 1518
 
 // Atencao!! Confira no /usr/include do seu sisop o nome correto
@@ -19,6 +20,8 @@
 typedef unsigned char MacAddress[MAC_ADDR_LEN];
 extern int errno;
 
+void write_ip_bytes(char *ip, unsigned char *buffer);
+
 int main()
 {
   int sockFd = 0, retValue = 0;
@@ -26,9 +29,11 @@ int main()
   struct sockaddr_ll destAddr;
   short int etherTypeT = htons(0x0800);
 
-  /* Set up mac addresses ffor the machines that will receive the packets */
-  MacAddress localMac  = {0xE8, 0xB1, 0xFC, 0x00, 0x5D, 0xF2};
-  MacAddress destMac   = {0x28, 0x32, 0xC5, 0xD4, 0x47, 0x8A};
+  /* Set up mac / IPv4 addresses for the machines that will receive the packets */
+  MacAddress local_mac = {0xE8, 0xB1, 0xFC, 0x00, 0x5D, 0xF2};
+  char *local_ip       = "10.2.3.4";
+  MacAddress dest_mac  = {0x28, 0x32, 0xC5, 0xD4, 0x47, 0x8A};
+  char *dest_ip        = "11.2.3.4";
 
   /* Criacao do socket. Todos os pacotes devem ser construidos a partir do protocolo Ethernet. */
   /* De um "man" para ver os parametros.*/
@@ -43,14 +48,14 @@ int main()
   destAddr.sll_protocol = htons(ETH_P_ALL);
   destAddr.sll_halen = 6;
   destAddr.sll_ifindex = 2;  // TODO: Parameterize this
-  memcpy(&(destAddr.sll_addr), destMac, MAC_ADDR_LEN);
+  memcpy(&(destAddr.sll_addr), dest_mac, MAC_ADDR_LEN);
 
   char* bufferptr = buffer;
 
   /* Ethernet header */
-  memcpy(bufferptr, destMac, MAC_ADDR_LEN);
+  memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
   bufferptr += MAC_ADDR_LEN;
-  memcpy(bufferptr, localMac, MAC_ADDR_LEN);
+  memcpy(bufferptr, local_mac, MAC_ADDR_LEN);
   bufferptr += MAC_ADDR_LEN;
   memcpy(bufferptr, &(etherTypeT), sizeof(etherTypeT));
   bufferptr += ETHERTYPE_LEN;
@@ -90,26 +95,27 @@ int main()
   memset(bufferptr, 0x00, 1);
   bufferptr += 1;
   /* Source IP */
-  memset(bufferptr, 0xC0, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0xA8, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x0C, 1);
-  bufferptr += 1;
+  write_ip_bytes(local_ip, bufferptr);
+  bufferptr += IP_ADDR_LEN;
   /* Destination IP */
-  memset(bufferptr, 0xC0, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0xA8, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x01, 1);
-  bufferptr += 1;
+  write_ip_bytes(dest_ip, bufferptr);
+  bufferptr += IP_ADDR_LEN;
 
   /* ICMP */
-  memcpy(bufferptr, dummyBuf, 64);
+  /* Type (request) */
+  memset(bufferptr, 0x08, 1);
+  bufferptr += 1;
+  /* Code (zero) */
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  /* TODO: Proper checksum */
+  memset(bufferptr, 0xf7, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0xff, 1);
+  bufferptr += 1;
+
+  // Zero out...
+  memset(bufferptr, 0, 64);
 
   /* Envia pacotes de 64 bytes */
   if((retValue = sendto(sockFd, buffer, 98, 0, (struct sockaddr *)&(destAddr), sizeof(struct sockaddr_ll))) < 0) {
@@ -117,4 +123,9 @@ int main()
       exit(1);
   }
   printf("Send success (%d).\n", retValue);
+}
+
+// Based on http://stackoverflow.com/a/9211667
+void write_ip_bytes(char *ip_str, unsigned char *buffer) {
+  sscanf(ip_str, "%hhd.%hhd.%hhd.%hhd", buffer, buffer + 1, buffer + 2, buffer + 3);
 }
