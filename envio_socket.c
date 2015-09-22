@@ -21,38 +21,30 @@ typedef unsigned char MacAddress[MAC_ADDR_LEN];
 extern int errno;
 
 void write_ip_bytes(char *ip, unsigned char *buffer);
+int send_packet(int sock_fd, MacAddress dest_mac, char *buffer, int packet_size);
 
 int main()
 {
-  int sockFd = 0, retValue = 0;
-  char buffer[BUFFER_LEN], dummyBuf[64];
-  struct sockaddr_ll destAddr;
-  short int etherTypeT = htons(0x0800);
+  // Creates the raw socket to send packets
+  int sock_fd = 0;
+  if((sock_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+    printf("Erro na criacao do socket.\n");
+    exit(1);
+  }
 
   /* Set up mac / IPv4 addresses for the machines that will receive the packets */
+  // TODO: This should be passed in as arguments to the CLI
   MacAddress local_mac = {0xE8, 0xB1, 0xFC, 0x00, 0x5D, 0xF2};
   char *local_ip       = "10.2.3.4";
   MacAddress dest_mac  = {0x28, 0x32, 0xC5, 0xD4, 0x47, 0x8A};
   char *dest_ip        = "11.2.3.4";
 
-  /* Criacao do socket. Todos os pacotes devem ser construidos a partir do protocolo Ethernet. */
-  /* De um "man" para ver os parametros.*/
-  /* htons: converte um short (2-byte) integer para standard network byte order. */
-  if((sockFd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
-    printf("Erro na criacao do socket.\n");
-    exit(1);
-  }
-
-  /* Identify the machine (MAC) that is going to receive the message sent. */
-  destAddr.sll_family = htons(PF_PACKET);
-  destAddr.sll_protocol = htons(ETH_P_ALL);
-  destAddr.sll_halen = 6;
-  destAddr.sll_ifindex = 2;  // TODO: Parameterize this
-  memcpy(&(destAddr.sll_addr), dest_mac, MAC_ADDR_LEN);
-
+  /* The buffer where the message gets built */
+  char buffer[BUFFER_LEN];
   char* bufferptr = buffer;
 
   /* Ethernet header */
+  short int etherTypeT = htons(0x0800);
   memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
   bufferptr += MAC_ADDR_LEN;
   memcpy(bufferptr, local_mac, MAC_ADDR_LEN);
@@ -117,15 +109,29 @@ int main()
   // Zero out...
   memset(bufferptr, 0, 64);
 
-  /* Envia pacotes de 64 bytes */
-  if((retValue = sendto(sockFd, buffer, 98, 0, (struct sockaddr *)&(destAddr), sizeof(struct sockaddr_ll))) < 0) {
-      printf("ERROR! sendto() \n");
+  int send_result = send_packet(sock_fd, dest_mac, buffer, 98);
+  if (send_result < 0) {
+      printf("ERROR sending packet!\n");
       exit(1);
   }
-  printf("Send success (%d).\n", retValue);
+
+  printf("Send success (%d).\n", send_result);
 }
 
 // Based on http://stackoverflow.com/a/9211667
 void write_ip_bytes(char *ip_str, unsigned char *buffer) {
   sscanf(ip_str, "%hhd.%hhd.%hhd.%hhd", buffer, buffer + 1, buffer + 2, buffer + 3);
+}
+
+int send_packet(int sock_fd, MacAddress dest_mac, char *buffer, int packet_size) {
+  /* Identify the machine (MAC) that is going to receive the message sent. */
+  struct sockaddr_ll dest_addr;
+  dest_addr.sll_family = htons(PF_PACKET);
+  dest_addr.sll_protocol = htons(ETH_P_ALL);
+  dest_addr.sll_halen = 6;
+  dest_addr.sll_ifindex = 2; // TODO: Parameterize this
+  memcpy(&(dest_addr.sll_addr), dest_mac, MAC_ADDR_LEN);
+
+  // Send the actual packet
+  return sendto(sock_fd, buffer, packet_size, 0, (struct sockaddr *)&(dest_addr), sizeof(struct sockaddr_ll));
 }
