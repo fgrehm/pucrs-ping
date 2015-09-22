@@ -22,7 +22,7 @@ extern int errno;
 int main()
 {
   int sockFd = 0, retValue = 0;
-  char buffer[BUFFER_LEN], dummyBuf[82];
+  char buffer[BUFFER_LEN], dummyBuf[64];
   struct sockaddr_ll destAddr;
   short int etherTypeT = htons(0x0800);
 
@@ -84,9 +84,32 @@ int main()
   /* ICMP */
   memset(bufferptr, 0x01, 1);
   bufferptr += 1;
+  /* Checksum (enable checksum) */
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  /* Source IP */
+  memset(bufferptr, 0xC0, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0xA8, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x0C, 1);
+  bufferptr += 1;
+  /* Destination IP */
+  memset(bufferptr, 0xC0, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0xA8, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x01, 1);
+  bufferptr += 1;
 
   /* ICMP */
-  memcpy(bufferptr, dummyBuf, 76);
+  memcpy(bufferptr, dummyBuf, 64);
 
   /* Envia pacotes de 64 bytes */
   if((retValue = sendto(sockFd, buffer, 98, 0, (struct sockaddr *)&(destAddr), sizeof(struct sockaddr_ll))) < 0) {
