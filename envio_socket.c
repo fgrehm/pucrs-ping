@@ -1,7 +1,3 @@
-/*-------------------------------------------------------------*/
-/* Exemplo Socket Raw - envio de mensagens                     */
-/*-------------------------------------------------------------*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -28,11 +24,11 @@ int main()
   int sockFd = 0, retValue = 0;
   char buffer[BUFFER_LEN], dummyBuf[50];
   struct sockaddr_ll destAddr;
-  short int etherTypeT = htons(0x8200);
+  short int etherTypeT = htons(0x0800);
 
   /* Configura MAC Origem e Destino */
-  MacAddress localMac = {0x00, 0x0B, 0xCD, 0xA8, 0x6D, 0x91};
-  MacAddress destMac = {0x00, 0x17, 0x9A, 0xB3, 0x9E, 0x16};
+  MacAddress localMac  = {0xE8, 0xB1, 0xFC, 0x00, 0x5D, 0xF2};
+  MacAddress destMac   = {0x28, 0x32, 0xC5, 0xD4, 0x47, 0x8A};
 
   /* Criacao do socket. Todos os pacotes devem ser construidos a partir do protocolo Ethernet. */
   /* De um "man" para ver os parametros.*/
@@ -64,5 +60,6 @@ int main()
        exit(1);
     }
     printf("Send success (%d).\n", retValue);
+    exit(0);
   }
 }
