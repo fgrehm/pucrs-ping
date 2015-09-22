@@ -22,11 +22,11 @@ extern int errno;
 int main()
 {
   int sockFd = 0, retValue = 0;
-  char buffer[BUFFER_LEN], dummyBuf[50];
+  char buffer[BUFFER_LEN], dummyBuf[84];
   struct sockaddr_ll destAddr;
   short int etherTypeT = htons(0x0800);
 
-  /* Configura MAC Origem e Destino */
+  /* Set up mac addresses ffor the machines that will receive the packets */
   MacAddress localMac  = {0xE8, 0xB1, 0xFC, 0x00, 0x5D, 0xF2};
   MacAddress destMac   = {0x28, 0x32, 0xC5, 0xD4, 0x47, 0x8A};
 
@@ -38,28 +38,27 @@ int main()
     exit(1);
   }
 
-  /* Identicacao de qual maquina (MAC) deve receber a mensagem enviada no socket. */
+  /* Identify the machine (MAC) that is going to receive the message sent. */
   destAddr.sll_family = htons(PF_PACKET);
   destAddr.sll_protocol = htons(ETH_P_ALL);
   destAddr.sll_halen = 6;
-  destAddr.sll_ifindex = 2;  /* indice da interface pela qual os pacotes serao enviados. Eh necessário conferir este valor. */
+  destAddr.sll_ifindex = 2;  // TODO: Parameterize this
   memcpy(&(destAddr.sll_addr), destMac, MAC_ADDR_LEN);
 
-  /* Cabecalho Ethernet */
+  /* Ethernet header */
   memcpy(buffer, destMac, MAC_ADDR_LEN);
   memcpy((buffer+MAC_ADDR_LEN), localMac, MAC_ADDR_LEN);
   memcpy((buffer+(2*MAC_ADDR_LEN)), &(etherTypeT), sizeof(etherTypeT));
 
-  /* Add some data */
-  memcpy((buffer+ETHERTYPE_LEN+(2*MAC_ADDR_LEN)), dummyBuf, 50);
+  /* IPv4  */
 
-  while(1) {
-    /* Envia pacotes de 64 bytes */
-    if((retValue = sendto(sockFd, buffer, 64, 0, (struct sockaddr *)&(destAddr), sizeof(struct sockaddr_ll))) < 0) {
-       printf("ERROR! sendto() \n");
-       exit(1);
-    }
-    printf("Send success (%d).\n", retValue);
-    exit(0);
+  /* ICMP */
+  memcpy((buffer+ETHERTYPE_LEN+(2*MAC_ADDR_LEN)), dummyBuf, 84);
+
+  /* Envia pacotes de 64 bytes */
+  if((retValue = sendto(sockFd, buffer, 98, 0, (struct sockaddr *)&(destAddr), sizeof(struct sockaddr_ll))) < 0) {
+      printf("ERROR! sendto() \n");
+      exit(1);
   }
+  printf("Send success (%d).\n", retValue);
 }
