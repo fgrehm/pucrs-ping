@@ -1,5 +1,7 @@
-build:
-	docker build -t fgrehm/pucrs-ping .
+all: envio_socket recepcao_socket
 
-hack:
-	docker run -ti --rm -v `pwd`:/workspace -w /workspace fgrehm/pucrs-ping bash
+envio_socket: envio_socket.c
+	gcc -o envio_socket envio_socket.c
+
+recepcao_socket: recepcao_socket.c
+	gcc -o recepcao_socket recepcao_socket.c
