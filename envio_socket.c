@@ -22,7 +22,7 @@ extern int errno;
 int main()
 {
   int sockFd = 0, retValue = 0;
-  char buffer[BUFFER_LEN], dummyBuf[84];
+  char buffer[BUFFER_LEN], dummyBuf[82];
   struct sockaddr_ll destAddr;
   short int etherTypeT = htons(0x0800);
 
@@ -45,15 +45,48 @@ int main()
   destAddr.sll_ifindex = 2;  // TODO: Parameterize this
   memcpy(&(destAddr.sll_addr), destMac, MAC_ADDR_LEN);
 
-  /* Ethernet header */
-  memcpy(buffer, destMac, MAC_ADDR_LEN);
-  memcpy((buffer+MAC_ADDR_LEN), localMac, MAC_ADDR_LEN);
-  memcpy((buffer+(2*MAC_ADDR_LEN)), &(etherTypeT), sizeof(etherTypeT));
+  char* bufferptr = buffer;
 
-  /* IPv4  */
+  /* Ethernet header */
+  memcpy(bufferptr, destMac, MAC_ADDR_LEN);
+  bufferptr += MAC_ADDR_LEN;
+  memcpy(bufferptr, localMac, MAC_ADDR_LEN);
+  bufferptr += MAC_ADDR_LEN;
+  memcpy(bufferptr, &(etherTypeT), sizeof(etherTypeT));
+  bufferptr += ETHERTYPE_LEN;
+
+  /* IPv4 */
+  /* IP version 4 and 20 bytes header */
+  memset(bufferptr, 0x45, 1);
+  bufferptr += 1;
+  /* Set services field to zero */
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  /* Length of the packet (84 bytes) */
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x54, 1);
+  bufferptr += 1;
+  /* ID */
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  memset(bufferptr, 0x10, 1);
+  bufferptr += 1;
+  /* Flags (don't fragment) */
+  memset(bufferptr, 0x40, 1);
+  bufferptr += 1;
+  /* Offset (zero) */
+  memset(bufferptr, 0x00, 1);
+  bufferptr += 1;
+  /* TTL (64) */
+  memset(bufferptr, 0x40, 1);
+  bufferptr += 1;
+  /* ICMP */
+  memset(bufferptr, 0x01, 1);
+  bufferptr += 1;
 
   /* ICMP */
-  memcpy((buffer+ETHERTYPE_LEN+(2*MAC_ADDR_LEN)), dummyBuf, 84);
+  memcpy(bufferptr, dummyBuf, 76);
 
   /* Envia pacotes de 64 bytes */
   if((retValue = sendto(sockFd, buffer, 98, 0, (struct sockaddr *)&(destAddr), sizeof(struct sockaddr_ll))) < 0) {
