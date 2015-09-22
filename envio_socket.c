@@ -20,7 +20,10 @@
 typedef unsigned char MacAddress[MAC_ADDR_LEN];
 extern int errno;
 
-void write_ip_bytes(char *ip, unsigned char *buffer);
+char *write_byte(char *bufferptr, unsigned char byte);
+char *write_ip_bytes(char *bufferptr, char *ip_str);
+char *write_ethernet(char *bufferptr, MacAddress dest_mac, MacAddress local_mac);
+char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip);
 int send_packet(int sock_fd, MacAddress dest_mac, char *buffer, int packet_size);
 
 int main()
@@ -42,69 +45,20 @@ int main()
   /* The buffer where the message gets built */
   char buffer[BUFFER_LEN];
   char* bufferptr = buffer;
+  int increment = 0;
 
-  /* Ethernet header */
-  short int etherTypeT = htons(0x0800);
-  memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
-  bufferptr += MAC_ADDR_LEN;
-  memcpy(bufferptr, local_mac, MAC_ADDR_LEN);
-  bufferptr += MAC_ADDR_LEN;
-  memcpy(bufferptr, &(etherTypeT), sizeof(etherTypeT));
-  bufferptr += ETHERTYPE_LEN;
-
-  /* IPv4 */
-  /* IP version 4 and 20 bytes header */
-  memset(bufferptr, 0x45, 1);
-  bufferptr += 1;
-  /* Set services field to zero */
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  /* Length of the packet (84 bytes) */
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x54, 1);
-  bufferptr += 1;
-  /* ID */
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x10, 1);
-  bufferptr += 1;
-  /* Flags (don't fragment) */
-  memset(bufferptr, 0x40, 1);
-  bufferptr += 1;
-  /* Offset (zero) */
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  /* TTL (64) */
-  memset(bufferptr, 0x40, 1);
-  bufferptr += 1;
-  /* ICMP */
-  memset(bufferptr, 0x01, 1);
-  bufferptr += 1;
-  /* Checksum (enable checksum) */
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
-  /* Source IP */
-  write_ip_bytes(local_ip, bufferptr);
-  bufferptr += IP_ADDR_LEN;
-  /* Destination IP */
-  write_ip_bytes(dest_ip, bufferptr);
-  bufferptr += IP_ADDR_LEN;
+  // Prepare packet data as needed
+  bufferptr = write_ethernet(bufferptr, dest_mac, local_mac);
+  bufferptr = write_ipv4(bufferptr, local_ip, dest_ip);
 
   /* ICMP */
   /* Type (request) */
-  memset(bufferptr, 0x08, 1);
-  bufferptr += 1;
+  bufferptr = write_byte(bufferptr, 0x08);
   /* Code (zero) */
-  memset(bufferptr, 0x00, 1);
-  bufferptr += 1;
+  bufferptr = write_byte(bufferptr, 0x00);
   /* TODO: Proper checksum */
-  memset(bufferptr, 0xf7, 1);
-  bufferptr += 1;
-  memset(bufferptr, 0xff, 1);
-  bufferptr += 1;
+  bufferptr = write_byte(bufferptr, 0xf7);
+  bufferptr = write_byte(bufferptr, 0xff);
 
   // Zero out...
   memset(bufferptr, 0, 64);
@@ -118,11 +72,6 @@ int main()
   printf("Send success (%d).\n", send_result);
 }
 
-// Based on http://stackoverflow.com/a/9211667
-void write_ip_bytes(char *ip_str, unsigned char *buffer) {
-  sscanf(ip_str, "%hhd.%hhd.%hhd.%hhd", buffer, buffer + 1, buffer + 2, buffer + 3);
-}
-
 int send_packet(int sock_fd, MacAddress dest_mac, char *buffer, int packet_size) {
   /* Identify the machine (MAC) that is going to receive the message sent. */
   struct sockaddr_ll dest_addr;
@@ -134,4 +83,68 @@ int send_packet(int sock_fd, MacAddress dest_mac, char *buffer, int packet_size)
 
   // Send the actual packet
   return sendto(sock_fd, buffer, packet_size, 0, (struct sockaddr *)&(dest_addr), sizeof(struct sockaddr_ll));
+}
+
+char *write_byte(char *bufferptr, unsigned char byte) {
+  memset(bufferptr, byte, 1);
+  return bufferptr + 1;
+}
+
+// Based on http://stackoverflow.com/a/9211667
+char *write_ip_bytes(char *bufferptr, char *ip_str) {
+  sscanf(ip_str, "%hhd.%hhd.%hhd.%hhd", bufferptr, bufferptr + 1, bufferptr + 2, bufferptr + 3);
+  return bufferptr + IP_ADDR_LEN;
+}
+
+// Write the ethernet headers
+char *write_ethernet(char *bufferptr, MacAddress dest_mac, MacAddress local_mac) {
+  memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
+  bufferptr += MAC_ADDR_LEN;
+
+  memcpy(bufferptr, local_mac, MAC_ADDR_LEN);
+  bufferptr += MAC_ADDR_LEN;
+
+  short int etherTypeT = htons(0x0800);
+  memcpy(bufferptr, &(etherTypeT), sizeof(etherTypeT));
+
+  return bufferptr + ETHERTYPE_LEN;
+}
+
+// Write the IPv4 headers
+char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
+  /* IP version 4 and 20 bytes header */
+  bufferptr = write_byte(bufferptr, 0x45);
+
+  /* Set services field to zero */
+  bufferptr = write_byte(bufferptr, 0x00);
+
+  /* Length of the packet (84 bytes) */
+  bufferptr = write_byte(bufferptr, 0x00);
+  bufferptr = write_byte(bufferptr, 0x54);
+
+  /* ID */
+  bufferptr = write_byte(bufferptr, 0x00);
+  bufferptr = write_byte(bufferptr, 0x10);
+
+  /* Flags (don't fragment) */
+  bufferptr = write_byte(bufferptr, 0x40);
+
+  /* Offset (zero) */
+  bufferptr = write_byte(bufferptr, 0x00);
+
+  /* TTL (64) */
+  bufferptr = write_byte(bufferptr, 0x40);
+
+  /* ICMP */
+  bufferptr = write_byte(bufferptr, 0x01);
+
+  /* Checksum (TODO: enable checksum) */
+  bufferptr = write_byte(bufferptr, 0x00);
+  bufferptr = write_byte(bufferptr, 0x00);
+
+  /* Source IP */
+  bufferptr = write_ip_bytes(bufferptr, local_ip);
+
+  /* Destination IP */
+  return write_ip_bytes(bufferptr, dest_ip);
 }
