@@ -36,9 +36,6 @@ int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, c
   bufferptr = write_ipv4(bufferptr, local_ip, dest_ip);
   bufferptr = write_icmp(bufferptr);
 
-  // Zero out...
-  memset(bufferptr, 0, 64);
-
   return send_packet(sock_fd, dest_mac, buffer, 42);
 }
 
@@ -142,7 +139,7 @@ char *write_icmp(char *bufferptr) {
   // calculate the checksum
   char *start = bufferptr;
 
-  /* Type (request) */
+  /* Type (echo request) */
   bufferptr = write_byte(bufferptr, 0x08);
 
   /* Code (zero) */
