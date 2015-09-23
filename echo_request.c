@@ -39,7 +39,7 @@ int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, c
   // Zero out...
   memset(bufferptr, 0, 64);
 
-  return send_packet(sock_fd, dest_mac, buffer, 98);
+  return send_packet(sock_fd, dest_mac, buffer, 42);
 }
 
 // Based on http://stackoverflow.com/a/3409211
@@ -89,19 +89,23 @@ char *write_ethernet(char *bufferptr, char *dest_mac, char *local_mac) {
 
 // Write the IPv4 headers
 char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
+  // Grab a reference to the beggining of the header so we can come back and
+  // calculate the checksum
+  char *start = bufferptr;
+
   /* IP version 4 and 20 bytes header */
   bufferptr = write_byte(bufferptr, 0x45);
 
   /* Set services field to zero */
   bufferptr = write_byte(bufferptr, 0x00);
 
-  /* Length of the packet (84 bytes) */
+  /* Length of the packet (36 bytes) */
   bufferptr = write_byte(bufferptr, 0x00);
-  bufferptr = write_byte(bufferptr, 0x54);
+  bufferptr = write_byte(bufferptr, 0x1c);
 
   /* ID */
-  bufferptr = write_byte(bufferptr, 0x00);
-  bufferptr = write_byte(bufferptr, 0x10);
+  bufferptr = write_byte(bufferptr, 0xFF);
+  bufferptr = write_byte(bufferptr, 0xEE);
 
   /* Flags (don't fragment) */
   bufferptr = write_byte(bufferptr, 0x40);
@@ -115,7 +119,8 @@ char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
   /* ICMP */
   bufferptr = write_byte(bufferptr, 0x01);
 
-  /* Checksum (TODO: enable checksum) */
+  /* Zeroed checksum */
+  char *checksumstart = bufferptr;
   bufferptr = write_byte(bufferptr, 0x00);
   bufferptr = write_byte(bufferptr, 0x00);
 
@@ -123,17 +128,44 @@ char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
   bufferptr = write_ip_bytes(bufferptr, local_ip);
 
   /* Destination IP */
-  return write_ip_bytes(bufferptr, dest_ip);
+  bufferptr = write_ip_bytes(bufferptr, dest_ip);
+
+  // Calculate the checksum;
+  unsigned short checksum = in_cksum(start, 20);
+  memcpy(checksumstart, &checksum, 2);
+
+  return bufferptr;
 }
 
 char *write_icmp(char *bufferptr) {
+  // Grab a reference to the beggining of the header so we can come back and
+  // calculate the checksum
+  char *start = bufferptr;
+
   /* Type (request) */
   bufferptr = write_byte(bufferptr, 0x08);
 
   /* Code (zero) */
   bufferptr = write_byte(bufferptr, 0x00);
 
-  /* TODO: Proper checksum */
-  bufferptr = write_byte(bufferptr, 0xf7);
-  return write_byte(bufferptr, 0xff);
+  // Zeroed checksum
+  char *checksumstart = bufferptr;
+  bufferptr = write_byte(bufferptr, 0x00);
+  bufferptr = write_byte(bufferptr, 0x00);
+
+  // Identifier
+  // TODO: This should be dynamic
+  bufferptr = write_byte(bufferptr, 0x6e);
+  bufferptr = write_byte(bufferptr, 0xd2);
+
+  // Sequence number
+  // TODO: This should be dynamic
+  bufferptr = write_byte(bufferptr, 0x00);
+  bufferptr = write_byte(bufferptr, 0x02);
+
+  // Calculate the checksum;
+  unsigned short checksum = in_cksum(start, 8);
+  memcpy(checksumstart, &checksum, 2);
+
+  return bufferptr;
 }
