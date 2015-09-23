@@ -3,8 +3,7 @@
 #include <net/ethernet.h>
 #include <sys/socket.h>
 
-int main()
-{
+int main() {
   // Creates the raw socket to send packets
   int sock_fd = 0;
   if((sock_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {

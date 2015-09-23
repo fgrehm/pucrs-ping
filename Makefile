@@ -1,7 +1,4 @@
-all: envio_socket recepcao_socket
+build: pucrs-ping
 
-envio_socket: envio_socket.c echo_request.*
-	gcc -o envio_socket envio_socket.c echo_request.c
-
-recepcao_socket: recepcao_socket.c
-	gcc -o recepcao_socket recepcao_socket.c
+pucrs-ping: main.c echo_request.*
+	gcc -o pucrs-ping main.c echo_request.c
