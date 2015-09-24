@@ -47,7 +47,7 @@ char *parse_mac_addr(char *mac_str) {
 }
 
 int send_packet(int sock_fd, char *dest_mac, char *buffer, int packet_size) {
-  /* Identify the machine (MAC) that is going to receive the message sent. */
+  // Identify the machine (MAC) that is going to receive the message sent.
   struct sockaddr_ll dest_addr;
   dest_addr.sll_family = htons(PF_PACKET);
   dest_addr.sll_protocol = htons(ETH_P_ALL);
@@ -90,44 +90,44 @@ char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
   // calculate the checksum
   char *start = bufferptr;
 
-  /* IP version 4 and 20 bytes header */
+  // IP version 4 and 20 bytes header
   bufferptr = write_byte(bufferptr, 0x45);
 
-  /* Set services field to zero */
+  // Set services field to zero
   bufferptr = write_byte(bufferptr, 0x00);
 
-  /* Length of the packet (36 bytes) */
+  // Length of the packet (36 bytes)
   bufferptr = write_byte(bufferptr, 0x00);
   bufferptr = write_byte(bufferptr, 0x1c);
 
-  /* ID */
+  // ID
   bufferptr = write_byte(bufferptr, 0xFF);
   bufferptr = write_byte(bufferptr, 0xEE);
 
-  /* Flags (don't fragment) */
+  // Flags (don't fragment)
   bufferptr = write_byte(bufferptr, 0x40);
 
-  /* Offset (zero) */
+  // Offset (zero)
   bufferptr = write_byte(bufferptr, 0x00);
 
-  /* TTL (64) */
+  // TTL (64)
   bufferptr = write_byte(bufferptr, 0x40);
 
-  /* ICMP */
+  // ICMP
   bufferptr = write_byte(bufferptr, 0x01);
 
-  /* Zeroed checksum */
+  // Zeroed checksum
   char *checksumstart = bufferptr;
   bufferptr = write_byte(bufferptr, 0x00);
   bufferptr = write_byte(bufferptr, 0x00);
 
-  /* Source IP */
+  // Source IP
   bufferptr = write_ip_bytes(bufferptr, local_ip);
 
-  /* Destination IP */
+  // Destination IP
   bufferptr = write_ip_bytes(bufferptr, dest_ip);
 
-  // Calculate the checksum;
+  // Calculate the checksum
   unsigned short checksum = in_cksum(start, 20);
   memcpy(checksumstart, &checksum, 2);
 
@@ -139,10 +139,10 @@ char *write_icmp(char *bufferptr) {
   // calculate the checksum
   char *start = bufferptr;
 
-  /* Type (echo request) */
+  // Type (echo request)
   bufferptr = write_byte(bufferptr, 0x08);
 
-  /* Code (zero) */
+  // Code (zero)
   bufferptr = write_byte(bufferptr, 0x00);
 
   // Zeroed checksum

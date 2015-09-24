@@ -18,7 +18,6 @@ int main() {
   char *dest_mac  = "28:32:C5:D4:47:8A";
   char *dest_ip   = "192.168.0.1";
 
-  /* The buffer where the message gets built */
   int send_result = send_echo_request_packet(sock_fd, local_ip, local_mac, dest_ip, dest_mac);
   if (send_result < 0) {
       printf("ERROR sending packet!\n");
