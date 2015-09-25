@@ -1,3 +1,6 @@
+#include <errno.h>
+#include <time.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,20 +9,26 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include "constants.h"
 #include "echo_request.h"
 #include "echo_reply.h"
 
 int create_socket();
+unsigned char *parse_mac_addr(char *mac_str);
 
 int main() {
   int sock_fd = create_socket();
 
   /* Set up mac / IPv4 addresses for the machines that will receive the packets */
   // TODO: This should be passed in as arguments to the CLI
-  char *local_mac = "E8:B1:FC:00:5D:F2";
-  char *local_ip  = "192.168.0.12";
-  char *dest_mac  = "28:32:C5:D4:47:8A";
-  char *dest_ip   = "192.168.0.1";
+  char *local_mac_str = "E8:B1:FC:00:5D:F2";
+  char *local_ip      = "192.168.0.12";
+  char *dest_mac_str  = "28:32:C5:D4:47:8A";
+  char *dest_ip       = "192.168.0.1";
+
+  // Convert input to bytes
+  unsigned char *local_mac = parse_mac_addr(local_mac_str);
+  unsigned char *dest_mac  = parse_mac_addr(dest_mac_str);
 
   int i;
   for (i = 0; i < 6; i++) {
@@ -56,4 +65,11 @@ int create_socket() {
   ioctl(sock_fd, SIOCSIFFLAGS, &ifr);
 
   return sock_fd;
+}
+
+// Based on http://stackoverflow.com/a/3409211
+unsigned char *parse_mac_addr(char *mac_str) {
+  unsigned char *result = calloc(MAC_ADDR_LEN, sizeof(unsigned char));
+  sscanf(mac_str, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", result, result + 1, result + 2, result + 3, result + 4, result + 5);
+  return result;
 }

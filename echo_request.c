@@ -20,14 +20,9 @@ char *write_icmp(char *bufferptr);
 
 int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size);
 
-unsigned char *parse_mac_addr(char *mac_str);
-
-int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, char *dest_ip, char *dest_mac_str) {
+int send_echo_request_packet(int sock_fd, char *local_ip, unsigned char *local_mac, char *dest_ip, unsigned char *dest_mac) {
   char buffer[BUFFER_LEN];
   char* bufferptr = buffer;
-
-  unsigned char *local_mac = parse_mac_addr(local_mac_str);
-  unsigned char *dest_mac  = parse_mac_addr(dest_mac_str);
 
   // Prepare packet data as needed
   bufferptr = write_ethernet(bufferptr, dest_mac, local_mac);
@@ -35,13 +30,6 @@ int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, c
   bufferptr = write_icmp(bufferptr);
 
   return send_packet(sock_fd, dest_mac, buffer, 42);
-}
-
-// Based on http://stackoverflow.com/a/3409211
-unsigned char *parse_mac_addr(char *mac_str) {
-  unsigned char *result = calloc(MAC_ADDR_LEN, sizeof(unsigned char));
-  sscanf(mac_str, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", result, result + 1, result + 2, result + 3, result + 4, result + 5);
-  return result;
 }
 
 int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size) {
