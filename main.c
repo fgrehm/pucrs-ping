@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <sys/socket.h>
+#include "echo_request.h"
+
+// From <arpa/inet.h>
+uint16_t htons(uint16_t);
 
 int main() {
   // Creates the raw socket to send packets
@@ -18,10 +23,15 @@ int main() {
   char *dest_mac  = "28:32:C5:D4:47:8A";
   char *dest_ip   = "192.168.0.1";
 
-  int send_result = send_echo_request_packet(sock_fd, local_ip, local_mac, dest_ip, dest_mac);
-  if (send_result < 0) {
+  int i;
+  for (i = 0; i < 6; i++) {
+    int send_result = send_echo_request_packet(sock_fd, local_ip, local_mac, dest_ip, dest_mac);
+    if (send_result < 0) {
       printf("ERROR sending packet!\n");
       exit(1);
+    }
+    printf("Send success (%d).\n", send_result);
   }
-  printf("Send success (%d).\n", send_result);
+
+  return 0;
 }
