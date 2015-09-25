@@ -23,8 +23,10 @@ echo_request_t prepare_echo_request(unsigned short identifier, unsigned char *lo
   bufferptr = write_icmp(bufferptr, identifier);
 
   echo_request_t req = {
+    .identifier      = identifier,
     .sequence_number = sequence_number++,
     .timestamp       = 0,
+    .local_mac       = local_mac,
     .raw_packet      = buffer
   };
 
