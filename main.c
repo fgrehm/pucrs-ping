@@ -46,7 +46,7 @@ int main() {
   unsigned short identifier = getpid();
 
   int i;
-  for (i = 0; i < 6; i++) {
+  for (i = 0; i < TOTAL_PACKETS; i++) {
     echo_request_t req = prepare_echo_request(identifier, local_ip, local_mac, dest_ip, dest_mac);
     int send_result = send_packet(sock_fd, dest_mac, req.raw_packet, BUFFER_LEN);
     if (send_result < 0) {
@@ -71,7 +71,7 @@ int create_socket() {
 
   // Set interface to promiscuous mode
   struct ifreq ifr;
-  strcpy(ifr.ifr_name, "wlan0");
+  strcpy(ifr.ifr_name, INTERFACE_NAME);
   if(ioctl(sock_fd, SIOCGIFINDEX, &ifr) < 0) {
     printf("ioctl error!");
     exit(1);
@@ -103,7 +103,7 @@ int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_s
   dest_addr.sll_family = htons(PF_PACKET);
   dest_addr.sll_protocol = htons(ETH_P_ALL);
   dest_addr.sll_halen = 6;
-  dest_addr.sll_ifindex = 2; // TODO: Parameterize this
+  dest_addr.sll_ifindex = INTERFACE_INDEX;
   memcpy(&(dest_addr.sll_addr), dest_mac, MAC_ADDR_LEN);
 
   // Send the actual packet

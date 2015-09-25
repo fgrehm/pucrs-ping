@@ -76,8 +76,8 @@ char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_i
   // Offset (zero)
   bufferptr = write_byte(bufferptr, 0x00);
 
-  // TTL (64)
-  bufferptr = write_byte(bufferptr, 0x40);
+  // TTL
+  bufferptr = write_byte(bufferptr, TTL);
 
   // ICMP
   bufferptr = write_byte(bufferptr, 0x01);
