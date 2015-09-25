@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <arpa/inet.h>
+#include <netpacket/packet.h>
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -14,8 +16,15 @@
 #include "echo_reply.h"
 
 int create_socket();
+int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size);
+
 unsigned char *parse_mac_addr(char *mac_str);
 unsigned char *parse_ip_addr(char *ip_str);
+
+// void wait_for_icmp_reply_or_timeout(struct timespec *max_wait, int sock_fd, char *local_mac, char *local_ip, char *dest_mac, char *dest_ip);
+
+// pthread_mutex_t waiting = PTHREAD_MUTEX_INITIALIZER;
+// pthread_cond_t done = PTHREAD_COND_INITIALIZER;
 
 int main() {
   int sock_fd = create_socket();
@@ -33,9 +42,13 @@ int main() {
   unsigned char *dest_mac  = parse_mac_addr(dest_mac_str);
   unsigned char *dest_ip   = parse_ip_addr(dest_ip_str);
 
+  // This helps us identify our requests
+  unsigned short identifier = getpid();
+
   int i;
   for (i = 0; i < 6; i++) {
-    int send_result = send_echo_request_packet(sock_fd, local_ip, local_mac, dest_ip, dest_mac);
+    echo_request_t req = prepare_echo_request(identifier, local_ip, local_mac, dest_ip, dest_mac);
+    int send_result = send_packet(sock_fd, dest_mac, req.raw_packet, BUFFER_LEN);
     if (send_result < 0) {
       printf("ERROR sending packet!\n");
       exit(1);
@@ -82,4 +95,17 @@ unsigned char *parse_ip_addr(char *ip_str) {
   unsigned char *bytes = calloc(IP_ADDR_LEN, sizeof(unsigned char));
   sscanf(ip_str, "%hhd.%hhd.%hhd.%hhd", bytes, bytes + 1, bytes + 2, bytes + 3);
   return bytes;
+}
+
+int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size) {
+  // Identify the machine (MAC) that is going to receive the message sent.
+  struct sockaddr_ll dest_addr;
+  dest_addr.sll_family = htons(PF_PACKET);
+  dest_addr.sll_protocol = htons(ETH_P_ALL);
+  dest_addr.sll_halen = 6;
+  dest_addr.sll_ifindex = 2; // TODO: Parameterize this
+  memcpy(&(dest_addr.sll_addr), dest_mac, MAC_ADDR_LEN);
+
+  // Send the actual packet
+  return sendto(sock_fd, buffer, packet_size, 0, (struct sockaddr *)&(dest_addr), sizeof(struct sockaddr_ll));
 }
