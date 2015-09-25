@@ -29,15 +29,19 @@ pthread_cond_t done = PTHREAD_COND_INITIALIZER;
 int sock_fd = 0;
 struct timespec max_wait;
 
-int main() {
+int main(int argc, char *argv[]) {
+  if (argc != 5) {
+    printf("Usage: pucrs-ping LOCAL_MAC_ADDR LOCAL_IP_ADDR DESTINATION_MAC_ADDR DESTINATION_IP_ADDR\n\n");
+    exit(1);
+  }
+
   create_socket();
 
-  /* Set up mac / IPv4 addresses for the machines that will receive the packets */
-  // TODO: This should be passed in as arguments to the CLI
-  char *local_mac_str = "e8:b1:fc:00:5d:f2";
-  char *local_ip_str  = "192.168.1.8";
-  char *dest_mac_str  = "6c:70:9f:d8:38:fb";
-  char *dest_ip_str   = "192.168.1.1";
+  // Set up mac / IPv4 addresses for the machines that will receive the packets
+  char *local_mac_str = argv[1];
+  char *local_ip_str  = argv[2];
+  char *dest_mac_str  = argv[3];
+  char *dest_ip_str   = argv[4];
 
   // Set up timeout stuff
   memset(&max_wait, 0, sizeof(max_wait));
