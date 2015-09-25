@@ -5,6 +5,7 @@ typedef struct {
   char success;
   char timed_out;
   char ttl_exceeded;
+  char ttl;
   char *source_ip;
 } reply_response_t;
 

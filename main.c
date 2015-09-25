@@ -64,18 +64,18 @@ int main(int argc, char *argv[]) {
       printf("ERROR sending packet: %d\n", send_result);
       exit(1);
     }
-    printf("Send success (%d).\n", send_result);
+    printf("\n[%d] Send success (%d).\n", i, send_result);
 
     reply_response_t res = wait_for_icmp_reply_or_timeout(req);
     if (res.success) {
-      printf(" -> Print statistics.\n");
+      printf("  - TODO: Print statistics.\n");
       continue;
     }
 
     if (res.timed_out) {
-      printf(" -> Timeout.\n");
+      printf("  - Timeout.\n");
     } else if (res.ttl_exceeded) {
-      printf(" -> TTL exceeded (%s).\n", res.source_ip);
+      printf("  - TTL exceeded (%s).\n", res.source_ip);
     } else {
       printf("ERROR!.\n");
       exit(1);
@@ -164,6 +164,8 @@ reply_response_t wait_for_icmp_reply_or_timeout(echo_request_t req) {
 }
 
 void *wait_for_icmp_reply_and_mark_as_done(void *args) {
+  printf("  - TODO: Implement timeout\n");
+
   reply_response_t *res = malloc(sizeof(reply_response_t));
   reply_response_t tmp = wait_for_icmp_reply(sock_fd, *(echo_request_t *)args);
 
