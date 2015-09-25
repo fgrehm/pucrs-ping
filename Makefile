@@ -1,4 +1,25 @@
-build: pucrs-ping
+# Based on http://stackoverflow.com/a/1484873
+TARGET = pucrs-ping
+LIBS = -pthread
+CC = gcc
+CFLAGS = -Wall
 
-pucrs-ping: main.c checksum.c echo_request.*
-	gcc -o pucrs-ping main.c echo_request.c checksum.c
+.PHONY: default all clean
+
+default: $(TARGET)
+all: default
+
+OBJECTS = $(patsubst %.c, %.o, $(wildcard *.c))
+HEADERS = $(wildcard *.h)
+
+%.o: %.c $(HEADERS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+.PRECIOUS: $(TARGET) $(OBJECTS)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -Wall $(LIBS) -o $@
+
+clean:
+	-rm -f *.o
+	-rm -f $(TARGET)

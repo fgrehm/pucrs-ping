@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <linux/if_ether.h>
@@ -16,13 +17,18 @@
 
 char *write_byte(char *bufferptr, unsigned char byte);
 char *write_ip_bytes(char *bufferptr, char *ip_str);
-char *write_ethernet(char *bufferptr, char *dest_mac, char *local_mac);
+char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac);
 char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip);
 char *write_icmp(char *bufferptr);
 
-int send_packet(int sock_fd, char *dest_mac, char *buffer, int packet_size);
+int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size);
 
-char *parse_mac_addr(char *mac_str);
+unsigned char *parse_mac_addr(char *mac_str);
+
+// From <arpa/inet.h>
+uint16_t htons(uint16_t);
+// From checksum.h
+unsigned short in_cksum(unsigned short *addr, int len);
 
 int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, char *dest_ip, char *dest_mac_str) {
   char buffer[BUFFER_LEN];
@@ -40,13 +46,13 @@ int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, c
 }
 
 // Based on http://stackoverflow.com/a/3409211
-char *parse_mac_addr(char *mac_str) {
+unsigned char *parse_mac_addr(char *mac_str) {
   unsigned char *result = calloc(MAC_ADDR_LEN, sizeof(unsigned char));
   sscanf(mac_str, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", result, result + 1, result + 2, result + 3, result + 4, result + 5);
   return result;
 }
 
-int send_packet(int sock_fd, char *dest_mac, char *buffer, int packet_size) {
+int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size) {
   // Identify the machine (MAC) that is going to receive the message sent.
   struct sockaddr_ll dest_addr;
   dest_addr.sll_family = htons(PF_PACKET);
@@ -71,7 +77,7 @@ char *write_ip_bytes(char *bufferptr, char *ip_str) {
 }
 
 // Write the ethernet headers
-char *write_ethernet(char *bufferptr, char *dest_mac, char *local_mac) {
+char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac) {
   memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
   bufferptr += MAC_ADDR_LEN;
 
@@ -128,7 +134,7 @@ char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
   bufferptr = write_ip_bytes(bufferptr, dest_ip);
 
   // Calculate the checksum
-  unsigned short checksum = in_cksum(start, 20);
+  unsigned short checksum = in_cksum((short unsigned int *)start, 20);
   memcpy(checksumstart, &checksum, 2);
 
   return bufferptr;
@@ -161,7 +167,7 @@ char *write_icmp(char *bufferptr) {
   bufferptr = write_byte(bufferptr, 0x02);
 
   // Calculate the checksum;
-  unsigned short checksum = in_cksum(start, 8);
+  unsigned short checksum = in_cksum((short unsigned int *)start, 8);
   memcpy(checksumstart, &checksum, 2);
 
   return bufferptr;
