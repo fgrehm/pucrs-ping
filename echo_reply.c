@@ -2,7 +2,7 @@
 #include <sys/socket.h>
 #include "constants.h"
 
-void wait_for_icmp_reply(int sock_fd, char *local_mac, char *local_ip, char *dest_mac, char *dest_ip) {
+void wait_for_icmp_reply(int sock_fd, unsigned char *local_mac, unsigned char *local_ip, unsigned char *dest_mac, unsigned char *dest_ip) {
   printf("Waiting for echo reply packet\n");
 
   unsigned char buff1[BUFFER_LEN];

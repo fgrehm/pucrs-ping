@@ -13,14 +13,13 @@
 #include "checksum.h"
 
 char *write_byte(char *bufferptr, unsigned char byte);
-char *write_ip_bytes(char *bufferptr, char *ip_str);
 char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac);
-char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip);
+char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_ip);
 char *write_icmp(char *bufferptr);
 
 int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size);
 
-int send_echo_request_packet(int sock_fd, char *local_ip, unsigned char *local_mac, char *dest_ip, unsigned char *dest_mac) {
+int send_echo_request_packet(int sock_fd, unsigned char *local_ip, unsigned char *local_mac, unsigned char *dest_ip, unsigned char *dest_mac) {
   char buffer[BUFFER_LEN];
   char* bufferptr = buffer;
 
@@ -50,12 +49,6 @@ char *write_byte(char *bufferptr, unsigned char byte) {
   return bufferptr + 1;
 }
 
-// Based on http://stackoverflow.com/a/9211667
-char *write_ip_bytes(char *bufferptr, char *ip_str) {
-  sscanf(ip_str, "%hhd.%hhd.%hhd.%hhd", bufferptr, bufferptr + 1, bufferptr + 2, bufferptr + 3);
-  return bufferptr + IP_ADDR_LEN;
-}
-
 // Write the ethernet headers
 char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac) {
   memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
@@ -71,7 +64,7 @@ char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *lo
 }
 
 // Write the IPv4 headers
-char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
+char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_ip) {
   // Grab a reference to the beggining of the header so we can come back and
   // calculate the checksum
   char *start = bufferptr;
@@ -108,10 +101,12 @@ char *write_ipv4(char *bufferptr, char *local_ip, char *dest_ip) {
   bufferptr = write_byte(bufferptr, 0x00);
 
   // Source IP
-  bufferptr = write_ip_bytes(bufferptr, local_ip);
+  memcpy(bufferptr, local_ip, IP_ADDR_LEN);
+  bufferptr = bufferptr + IP_ADDR_LEN;
 
   // Destination IP
-  bufferptr = write_ip_bytes(bufferptr, dest_ip);
+  memcpy(bufferptr, dest_ip, IP_ADDR_LEN);
+  bufferptr = bufferptr + IP_ADDR_LEN;
 
   // Calculate the checksum
   unsigned short checksum = in_cksum((short unsigned int *)start, 20);
