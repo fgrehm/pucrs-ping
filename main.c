@@ -9,24 +9,10 @@
 #include "echo_request.h"
 #include "echo_reply.h"
 
-int main() {
-  // Creates the raw socket to send packets
-  int sock_fd = 0;
-  if((sock_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
-    printf("Erro na criacao do socket.\n");
-    exit(1);
-  }
+int create_socket();
 
-  // Set interface to promiscuous mode
-  struct ifreq ifr;
-  strcpy(ifr.ifr_name, "wlan0");
-  if(ioctl(sock_fd, SIOCGIFINDEX, &ifr) < 0) {
-    printf("ioctl error!");
-    exit(1);
-  }
-  ioctl(sock_fd, SIOCGIFFLAGS, &ifr);
-  ifr.ifr_flags |= IFF_PROMISC;
-  ioctl(sock_fd, SIOCSIFFLAGS, &ifr);
+int main() {
+  int sock_fd = create_socket();
 
   /* Set up mac / IPv4 addresses for the machines that will receive the packets */
   // TODO: This should be passed in as arguments to the CLI
@@ -47,4 +33,27 @@ int main() {
   }
 
   return 0;
+}
+
+int create_socket() {
+  int sock_fd = 0;
+
+  // Creates the raw socket to send packets
+  if((sock_fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) < 0) {
+    printf("Erro na criacao do socket.\n");
+    exit(1);
+  }
+
+  // Set interface to promiscuous mode
+  struct ifreq ifr;
+  strcpy(ifr.ifr_name, "wlan0");
+  if(ioctl(sock_fd, SIOCGIFINDEX, &ifr) < 0) {
+    printf("ioctl error!");
+    exit(1);
+  }
+  ioctl(sock_fd, SIOCGIFFLAGS, &ifr);
+  ifr.ifr_flags |= IFF_PROMISC;
+  ioctl(sock_fd, SIOCSIFFLAGS, &ifr);
+
+  return sock_fd;
 }
