@@ -10,6 +10,7 @@
 #include <netinet/ether.h>
 #include "echo_request.h"
 #include "constants.h"
+#include "checksum.h"
 
 char *write_byte(char *bufferptr, unsigned char byte);
 char *write_ip_bytes(char *bufferptr, char *ip_str);
@@ -20,11 +21,6 @@ char *write_icmp(char *bufferptr);
 int send_packet(int sock_fd, unsigned char *dest_mac, char *buffer, int packet_size);
 
 unsigned char *parse_mac_addr(char *mac_str);
-
-// From <arpa/inet.h>
-uint16_t htons(uint16_t);
-// From checksum.h
-unsigned short in_cksum(unsigned short *addr, int len);
 
 int send_echo_request_packet(int sock_fd, char *local_ip, char *local_mac_str, char *dest_ip, char *dest_mac_str) {
   char buffer[BUFFER_LEN];

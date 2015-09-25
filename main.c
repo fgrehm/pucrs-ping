@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include "echo_request.h"
-
-// From <arpa/inet.h>
-uint16_t htons(uint16_t);
+#include "echo_reply.h"
 
 int main() {
   // Creates the raw socket to send packets
@@ -15,6 +16,17 @@ int main() {
     printf("Erro na criacao do socket.\n");
     exit(1);
   }
+
+  // Set interface to promiscuous mode
+  struct ifreq ifr;
+  strcpy(ifr.ifr_name, "wlan0");
+  if(ioctl(sock_fd, SIOCGIFINDEX, &ifr) < 0) {
+    printf("ioctl error!");
+    exit(1);
+  }
+  ioctl(sock_fd, SIOCGIFFLAGS, &ifr);
+  ifr.ifr_flags |= IFF_PROMISC;
+  ioctl(sock_fd, SIOCSIFFLAGS, &ifr);
 
   /* Set up mac / IPv4 addresses for the machines that will receive the packets */
   // TODO: This should be passed in as arguments to the CLI
@@ -31,6 +43,7 @@ int main() {
       exit(1);
     }
     printf("Send success (%d).\n", send_result);
+    wait_for_icmp_reply(sock_fd, local_ip, local_mac, dest_ip, dest_mac);
   }
 
   return 0;
