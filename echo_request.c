@@ -27,6 +27,7 @@ echo_request_t prepare_echo_request(unsigned short identifier, unsigned char *lo
     .sequence_number = sequence_number++,
     .timestamp       = 0,
     .local_mac       = local_mac,
+    .local_ip        = local_ip,
     .raw_packet      = buffer
   };
 
@@ -98,7 +99,7 @@ char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_i
   bufferptr = bufferptr + IP_ADDR_LEN;
 
   // Calculate the checksum
-  unsigned short checksum = in_cksum((short unsigned int *)start, 20);
+  unsigned short checksum = in_cksum((short unsigned int *)start, IP_HEADER_LEN);
   memcpy(checksumstart, &checksum, 2);
 
   return bufferptr;

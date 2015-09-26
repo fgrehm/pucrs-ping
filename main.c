@@ -1,6 +1,5 @@
 #include <errno.h>
 #include <time.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,9 +21,6 @@ reply_response_t wait_for_icmp_reply_or_timeout(echo_request_t req);
 
 unsigned char *parse_mac_addr(char *mac_str);
 unsigned char *parse_ip_addr(char *ip_str);
-
-pthread_mutex_t waiting = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t done = PTHREAD_COND_INITIALIZER;
 
 int sock_fd = 0;
 struct timespec max_wait;
@@ -64,9 +60,10 @@ int main(int argc, char *argv[]) {
       printf("ERROR sending packet: %d\n", send_result);
       exit(1);
     }
-    printf("\n[%d] Send success (%d).\n", i, send_result);
+    printf("\n[%d] Send success (%d).\n", i+1, send_result);
 
-    reply_response_t res = wait_for_icmp_reply_or_timeout(req);
+    printf("  - TODO: Implement timeout.\n");
+    reply_response_t res = wait_for_icmp_reply(sock_fd, req);
     if (res.success) {
       printf("  - TODO: Print statistics.\n");
       continue;
@@ -129,49 +126,4 @@ int send_packet(unsigned char *dest_mac, char *buffer, int packet_size) {
 
   // Send the actual packet
   return sendto(sock_fd, buffer, packet_size, 0, (struct sockaddr *)&(dest_addr), sizeof(struct sockaddr_ll));
-}
-
-// Timeout code based on http://stackoverflow.com/a/8048123
-reply_response_t wait_for_icmp_reply_or_timeout(echo_request_t req) {
-  struct timespec abs_time;
-  pthread_t tid;
-  int err;
-  reply_response_t *res;
-
-  pthread_mutex_lock(&waiting);
-
-  /* pthread cond_timedwait expects an absolute time to wait until */
-  clock_gettime(CLOCK_REALTIME, &abs_time);
-  abs_time.tv_sec += max_wait.tv_sec;
-  abs_time.tv_nsec += max_wait.tv_nsec;
-
-  pthread_create(&tid, NULL, wait_for_icmp_reply_and_mark_as_done, (void *)&req);
-
-  err = pthread_cond_timedwait(&done, &waiting, &abs_time);
-  if (err >= 0) {
-    pthread_join(tid, (void *)&res);
-  }
-
-  if (err == ETIMEDOUT) {
-    res = malloc(sizeof(reply_response_t));
-    res->timed_out = 1;
-    res->success = 0;
-  }
-
-  pthread_mutex_unlock(&waiting);
-
-  return *res;
-}
-
-void *wait_for_icmp_reply_and_mark_as_done(void *args) {
-  printf("  - TODO: Implement timeout\n");
-
-  reply_response_t *res = malloc(sizeof(reply_response_t));
-  reply_response_t tmp = wait_for_icmp_reply(sock_fd, *(echo_request_t *)args);
-
-  memcpy(res, &tmp, sizeof(reply_response_t));
-
-  pthread_cond_signal(&done);
-
-  return (void*)res;
 }

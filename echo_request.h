@@ -8,6 +8,7 @@ typedef struct {
   unsigned short sequence_number;
   long timestamp;
   unsigned char *local_mac;
+  unsigned char *local_ip;
   char *raw_packet;
 } echo_request_t;
 
