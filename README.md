@@ -4,9 +4,9 @@ A (rudimentary) `ping` implementation in C built for the PUCRS Networking II 201
 
 ## Usage
 
-1) Figure out your network's gateway IP, run `arp` and grab its MAC address.
-2) Find out what is your IP address, MAC address and network interface index with `ip addr`.
-3) Change the interface name and index on the `constants.h` file.
+1. Figure out your network's gateway IP, run `arp` and grab its MAC address.
+2. Find out what is your IP address, MAC address and network interface index with `ip addr`.
+3. Change the interface name and index on the `constants.h` file.
 
 ```sh
 make && \
