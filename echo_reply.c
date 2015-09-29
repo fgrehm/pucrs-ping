@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -14,6 +15,8 @@ unsigned char ethernet_valid(unsigned char *packet, echo_request_t req);
 unsigned char ipv4_valid(unsigned char *packet, echo_request_t req, reply_response_t *res);
 unsigned char icmp_valid(unsigned char *packet, echo_request_t req, reply_response_t *res);
 
+extern int errno;
+
 reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
   unsigned char buffer[BUFFER_LEN*2];
   reply_response_t *res = malloc(sizeof(reply_response_t));
@@ -22,14 +25,31 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     memset(res, 0, sizeof(reply_response_t));
     res->result = -1;
 
-    recv(sock_fd, (char *)&buffer, sizeof(buffer), 0x0);
+    if (recv(sock_fd, (char *)&buffer, sizeof(buffer), 0x0) < 0) {
+      // If an error occured, check if it was a timeout
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        res->result = REPLY_TIMEOUT;
+        break;
+      } else {
+        printf("\nFATAL: Unknown error while reading from socket. errno = %d\n", errno);
+        exit(1);
+      }
+    }
 
     // Capture the time we received the message so we can calculate the time
-    // elapsed at the end
+    // elapsed and return it to the user (or timeout the echo request)
     struct timeval now;
     if (gettimeofday(&now, NULL) < 0) {
       printf("Error getting the current time\n");
       exit(1);
+    }
+    long sec_diff_in_usec = (now.tv_sec - req.sent_at.tv_sec) * 1000000;
+    long usec_diff        = abs(sec_diff_in_usec + now.tv_usec - req.sent_at.tv_usec);
+    res->elapsed_time_in_ms = usec_diff / 1000.0;
+
+    if (res->elapsed_time_in_ms > MAX_WAIT_SEC * 1050) {
+      res->result = REPLY_TIMEOUT;
+      break;
     }
 
     unsigned char *packet = buffer;
@@ -47,12 +67,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
 
     if (res->result == REPLY_UNSET)
       res->result = REPLY_SUCCESS;
-
-    if (res->result == REPLY_SUCCESS) {
-      long sec_diff_in_usec = (now.tv_sec - req.sent_at.tv_sec) * 1000000;
-      long usec_diff        = abs(sec_diff_in_usec + now.tv_usec - req.sent_at.tv_usec);
-      res->elapsed_time_in_ms = usec_diff / 1000.0;
-    }
 
     break;
   }

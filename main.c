@@ -16,8 +16,6 @@
 
 void create_socket();
 int send_packet(unsigned char *dest_mac, char *buffer, int packet_size);
-void *wait_for_icmp_reply_and_mark_as_done(void *args);
-reply_response_t wait_for_icmp_reply_or_timeout(echo_request_t req);
 
 unsigned char *parse_mac_addr(char *mac_str);
 unsigned char *parse_ip_addr(char *ip_str);
@@ -51,8 +49,7 @@ int main(int argc, char *argv[]) {
 
   // This helps us identify our requests
   unsigned short identifier = getpid();
-  printf("identifier: %d\n", identifier);
-  printf("TODO: Implement timeout.\n");
+  printf("PID: %d\n", identifier);
   printf("TODO: Implement support for --ttl.\n");
   printf("TODO: Implement support for --iface-name.\n");
   printf("TODO: Implement support for --iface-index.\n");
@@ -81,13 +78,15 @@ int main(int argc, char *argv[]) {
         printf("Reply from %d.%d.%d.%d: Time to live exceeded\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3]);
         break;
       case REPLY_TIMEOUT:
-        printf("  - Timeout.\n");
+        printf("Timeout after ~%d sec.\n", MAX_WAIT_SEC);
         break;
       default:
-        printf("  - Error handling ICMP reply %d.\n", res.result);
+        printf("\n\t FAILED: Error handling ICMP reply\n");
         exit(1);
         break;
     }
+
+    free(req.raw_packet);
   }
 
   return 0;
@@ -110,6 +109,11 @@ void create_socket() {
   ioctl(sock_fd, SIOCGIFFLAGS, &ifr);
   ifr.ifr_flags |= IFF_PROMISC;
   ioctl(sock_fd, SIOCSIFFLAGS, &ifr);
+
+  struct timeval tv;
+  tv.tv_sec = MAX_WAIT_SEC;
+  tv.tv_usec = 0;
+  setsockopt(sock_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
 }
 
 // Based on http://stackoverflow.com/a/3409211
