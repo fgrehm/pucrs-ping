@@ -53,6 +53,9 @@ int main(int argc, char *argv[]) {
   unsigned short identifier = getpid();
   printf("identifier: %d\n", identifier);
   printf("TODO: Implement timeout.\n");
+  printf("TODO: Implement support for --ttl.\n");
+  printf("TODO: Implement support for --iface-name.\n");
+  printf("TODO: Implement support for --iface-index.\n");
 
   int i;
   for (i = 0; i < TOTAL_PACKETS; i++) {
@@ -70,14 +73,14 @@ int main(int argc, char *argv[]) {
 
     reply_response_t res = wait_for_icmp_reply(sock_fd, req);
     if (res.success) {
-      printf("Reply from %d.%d.%d.%d: ttl=%d time=%.3f\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3], res.ttl, res.elapsed_time_in_ms);
+      printf("Reply from %d.%d.%d.%d: ttl=%d time=%.3fms\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3], res.ttl, res.elapsed_time_in_ms);
       continue;
     }
 
     if (res.timed_out) {
       printf("  - Timeout.\n");
     } else if (res.ttl_exceeded) {
-      printf("  - TTL exceeded (%s).\n", res.source_ip);
+      printf("Reply from %d.%d.%d.%d: Time to live exceeded\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3]);
     } else {
       printf("ERROR!.\n");
       exit(1);

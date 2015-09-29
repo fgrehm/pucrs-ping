@@ -15,6 +15,8 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
   unsigned char source_ip[IP_ADDR_LEN];
   unsigned char ttl;
   float elapsed_time_in_ms;
+  unsigned char success = 1;
+  unsigned char ttl_exceeded = 0;
 
   for (;;) {
     recv(sock_fd,(char *) &buffer, sizeof(buffer), 0x0);
@@ -112,10 +114,10 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     // Reference to where the ICMP section starts
     unsigned char *icmp_start_ptr = bufferptr;
 
-    // Is it an echo reply with code = 0?
+    // Is it an echo reply (or time to live exceeded) with code = 0?
     unsigned char icmp_type;
     CONSUME_BYTES(bufferptr, &icmp_type, sizeof(icmp_type));
-    if (icmp_type != 0)
+    if (icmp_type != 0 && icmp_type != 11)
       continue;
     unsigned char code;
     CONSUME_BYTES(bufferptr, &code, sizeof(code));
@@ -133,6 +135,15 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     calculated_checksum = ntohs(calculated_checksum);
     if (checksum != calculated_checksum)
       continue;
+
+    // If time to live was exceeded but the checksum is valid, we let the user
+    // know about the TTL exceeded, otherwise we discard the packet on the
+    // `if` above
+    if (icmp_type == 11) {
+      success = 0;
+      ttl_exceeded = 1;
+      break;
+    }
 
     // Identifier matches?
     unsigned short identifier;
@@ -162,9 +173,10 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
   }
 
   reply_response_t res = {
-    .success            = 1,
+    .success            = success,
     .ttl                = ttl,
     .source_ip          = source_ip,
+    .ttl_exceeded       = ttl_exceeded,
     .elapsed_time_in_ms = elapsed_time_in_ms
   };
 
