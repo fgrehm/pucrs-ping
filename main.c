@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
   // This helps us identify our requests
   unsigned short identifier = getpid();
   printf("PID: %d\n", identifier);
+  printf("TODO: Send 64 bytes worth of data.\n");
   printf("TODO: Implement support for --ttl.\n");
   printf("TODO: Implement support for --iface-name.\n");
   printf("TODO: Implement support for --iface-index.\n");
