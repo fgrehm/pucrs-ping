@@ -12,7 +12,9 @@
 
 reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
   unsigned char buffer[BUFFER_LEN*2];
+  unsigned char source_ip[IP_ADDR_LEN];
   unsigned char ttl;
+  float elapsed_time_in_ms;
 
   for (;;) {
     recv(sock_fd,(char *) &buffer, sizeof(buffer), 0x0);
@@ -33,8 +35,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
         break;
       }
     }
-
-    printf("match: %d\n", match);
 
     if (match != 1)
       continue;
@@ -94,7 +94,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
       continue;
 
     // Source IP
-    unsigned char source_ip[IP_ADDR_LEN];
     CONSUME_BYTES(bufferptr, source_ip, IP_ADDR_LEN * sizeof(unsigned char));
 
     // Target IP (us)
@@ -155,14 +154,18 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     long usec_diff = now.tv_usec - req.sent_at.tv_usec;
 
     if (sec_diff > 0) {
-      usec_diff += sec_diff * 100000;
+      usec_diff += abs(sec_diff) * 100000;
     }
+    elapsed_time_in_ms = usec_diff / 1000.0;
 
     break;
   }
 
   reply_response_t res = {
-    .success = 1
+    .success            = 1,
+    .ttl                = ttl,
+    .source_ip          = source_ip,
+    .elapsed_time_in_ms = elapsed_time_in_ms
   };
 
   return res;

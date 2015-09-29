@@ -52,25 +52,25 @@ int main(int argc, char *argv[]) {
   // This helps us identify our requests
   unsigned short identifier = getpid();
   printf("identifier: %d\n", identifier);
+  printf("TODO: Implement timeout.\n");
 
   int i;
   for (i = 0; i < TOTAL_PACKETS; i++) {
     echo_request_t req = prepare_echo_request(identifier, local_ip, local_mac, dest_ip, dest_mac);
+    if (gettimeofday(&req.sent_at, NULL) < 0) {
+      printf("Error getting the current time\n");
+      exit(1);
+    }
     int send_result = send_packet(dest_mac, req.raw_packet, BUFFER_LEN);
     if (send_result < 0) {
       printf("ERROR sending packet: %d\n", send_result);
       exit(1);
     }
-    if (gettimeofday(&req.sent_at, NULL) < 0) {
-      printf("Error getting the current time\n");
-      exit(1);
-    }
-    printf("\n[%d] Send success (%d).\n", i+1, send_result);
+    printf("[%d] ", i+1);
 
-    printf("  - TODO: Implement timeout.\n");
     reply_response_t res = wait_for_icmp_reply(sock_fd, req);
     if (res.success) {
-      printf("  - TODO: Print statistics.\n");
+      printf("Reply from %d.%d.%d.%d: ttl=%d time=%.3f\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3], res.ttl, res.elapsed_time_in_ms);
       continue;
     }
 
