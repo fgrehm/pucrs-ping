@@ -2,6 +2,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include "checksum.h"
 #include "echo_request.h"
 #include "echo_reply.h"
 #include "constants.h"
@@ -82,7 +83,7 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     // Go back to the checksum start and zero it out in order to validate the message
     memset(checksum_ptr, 0, sizeof(checksum));
     // Calculate the checksum with the info we have
-    unsigned short calculated_checksum = in_cksum(ip_start_ptr, IP_HEADER_LEN);
+    unsigned short calculated_checksum = in_cksum((short unsigned int *)ip_start_ptr, IP_HEADER_LEN);
     calculated_checksum = ntohs(calculated_checksum);
     printf("  - calculated checksum %x\n", calculated_checksum);
 

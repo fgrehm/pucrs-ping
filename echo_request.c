@@ -5,8 +5,8 @@
 #include "echo_request.h"
 #include "constants.h"
 #include "checksum.h"
+#include "io.h"
 
-char *write_byte(char *bufferptr, unsigned char byte);
 char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac);
 char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_ip);
 char *write_icmp(char *bufferptr, unsigned short identifier);
@@ -34,11 +34,6 @@ echo_request_t prepare_echo_request(unsigned short identifier, unsigned char *lo
   return req;
 }
 
-char *write_byte(char *bufferptr, unsigned char byte) {
-  memset(bufferptr, byte, 1);
-  return bufferptr + 1;
-}
-
 // Write the ethernet headers
 char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac) {
   memcpy(bufferptr, dest_mac, MAC_ADDR_LEN);
@@ -60,43 +55,39 @@ char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_i
   char *start = bufferptr;
 
   // IP version 4 and 20 bytes header
-  bufferptr = write_byte(bufferptr, 0x45);
+  APPEND_BYTE(bufferptr, 0x45);
 
   // Set services field to zero
-  bufferptr = write_byte(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0x00);
 
   // Length of the packet (36 bytes)
-  bufferptr = write_byte(bufferptr, 0x00);
-  bufferptr = write_byte(bufferptr, 0x1c);
+  APPEND_BYTE(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0x1c);
 
   // ID
-  bufferptr = write_byte(bufferptr, 0xFF);
-  bufferptr = write_byte(bufferptr, 0xEE);
+  APPEND_SHORT(bufferptr, 0x1231);
 
   // Flags (don't fragment)
-  bufferptr = write_byte(bufferptr, 0x40);
+  APPEND_BYTE(bufferptr, 0x40);
 
   // Offset (zero)
-  bufferptr = write_byte(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0x00);
 
   // TTL
-  bufferptr = write_byte(bufferptr, TTL);
+  APPEND_BYTE(bufferptr, TTL);
 
   // ICMP
-  bufferptr = write_byte(bufferptr, 0x01);
+  APPEND_BYTE(bufferptr, 0x01);
 
   // Zeroed checksum
   char *checksumstart = bufferptr;
-  bufferptr = write_byte(bufferptr, 0x00);
-  bufferptr = write_byte(bufferptr, 0x00);
+  APPEND_SHORT(bufferptr, 0);
 
   // Source IP
-  memcpy(bufferptr, local_ip, IP_ADDR_LEN);
-  bufferptr = bufferptr + IP_ADDR_LEN;
+  APPEND_BYTES(bufferptr, local_ip, IP_ADDR_LEN);
 
   // Destination IP
-  memcpy(bufferptr, dest_ip, IP_ADDR_LEN);
-  bufferptr = bufferptr + IP_ADDR_LEN;
+  APPEND_BYTES(bufferptr, dest_ip, IP_ADDR_LEN);
 
   // Calculate the checksum
   unsigned short checksum = in_cksum((short unsigned int *)start, IP_HEADER_LEN);
@@ -111,23 +102,20 @@ char *write_icmp(char *bufferptr, unsigned short identifier) {
   char *start = bufferptr;
 
   // Type (echo request)
-  bufferptr = write_byte(bufferptr, 0x08);
+  APPEND_BYTE(bufferptr, 0x08);
 
   // Code (zero)
-  bufferptr = write_byte(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0x00);
 
   // Zeroed checksum
   char *checksumstart = bufferptr;
-  bufferptr = write_byte(bufferptr, 0x00);
-  bufferptr = write_byte(bufferptr, 0x00);
+  APPEND_SHORT(bufferptr, 0);
 
   // Identifier
-  memcpy(bufferptr, &identifier, 2);
-  bufferptr += 2;
+  APPEND_BYTES(bufferptr, &identifier, sizeof(identifier));
 
   // Sequence number
-  memcpy(bufferptr, &sequence_number, 2);
-  bufferptr += 2;
+  APPEND_BYTES(bufferptr, &sequence_number, sizeof(sequence_number));
 
   // Calculate the checksum;
   unsigned short checksum = in_cksum((short unsigned int *)start, 8);
