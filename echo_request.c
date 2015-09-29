@@ -58,26 +58,25 @@ char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_i
   APPEND_BYTE(bufferptr, 0x45);
 
   // Set services field to zero
-  APPEND_BYTE(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0);
 
-  // Length of the packet (36 bytes)
-  APPEND_BYTE(bufferptr, 0x00);
-  APPEND_BYTE(bufferptr, 0x1c);
+  // Length of the packet (28 bytes)
+  APPEND_SHORT(bufferptr, IP_LEN);
 
   // ID
-  APPEND_SHORT(bufferptr, 0x1231);
+  APPEND_SHORT(bufferptr, 1000);
 
   // Flags (don't fragment)
   APPEND_BYTE(bufferptr, 0x40);
 
   // Offset (zero)
-  APPEND_BYTE(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0);
 
   // TTL
   APPEND_BYTE(bufferptr, TTL);
 
   // ICMP
-  APPEND_BYTE(bufferptr, 0x01);
+  APPEND_BYTE(bufferptr, 1);
 
   // Zeroed checksum
   char *checksumstart = bufferptr;
@@ -102,23 +101,23 @@ char *write_icmp(char *bufferptr, unsigned short identifier) {
   char *start = bufferptr;
 
   // Type (echo request)
-  APPEND_BYTE(bufferptr, 0x08);
+  APPEND_BYTE(bufferptr, 8);
 
   // Code (zero)
-  APPEND_BYTE(bufferptr, 0x00);
+  APPEND_BYTE(bufferptr, 0);
 
   // Zeroed checksum
   char *checksumstart = bufferptr;
   APPEND_SHORT(bufferptr, 0);
 
   // Identifier
-  APPEND_BYTES(bufferptr, &identifier, sizeof(identifier));
+  APPEND_SHORT(bufferptr, identifier);
 
   // Sequence number
-  APPEND_BYTES(bufferptr, &sequence_number, sizeof(sequence_number));
+  APPEND_SHORT(bufferptr, sequence_number);
 
   // Calculate the checksum;
-  unsigned short checksum = in_cksum((short unsigned int *)start, 8);
+  unsigned short checksum = in_cksum((short unsigned int *)start, ICMP_LEN);
   memcpy(checksumstart, &checksum, 2);
 
   return bufferptr;

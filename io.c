@@ -17,6 +17,7 @@ void *append_byte(void *buffer_ptr, unsigned char byte) {
 }
 
 void *append_short(void *buffer_ptr, unsigned short short_num) {
-  memset(buffer_ptr, short_num, 2);
+  short_num = htons(short_num);
+  memcpy(buffer_ptr, &short_num, sizeof(unsigned short));
   return buffer_ptr + 2;
 }
