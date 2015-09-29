@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #define ETHERTYPE_LEN 2
+#define ETHERNET_LEN (2 * MAC_ADDR_LEN + ETHERTYPE_LEN)
 #define MAC_ADDR_LEN 6
 #define IP_ADDR_LEN 4
 #define IP_HEADER_LEN 20

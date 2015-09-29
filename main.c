@@ -72,18 +72,21 @@ int main(int argc, char *argv[]) {
     printf("[%d] ", i+1);
 
     reply_response_t res = wait_for_icmp_reply(sock_fd, req);
-    if (res.success) {
-      printf("Reply from %d.%d.%d.%d: ttl=%d time=%.3fms\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3], res.ttl, res.elapsed_time_in_ms);
-      continue;
-    }
 
-    if (res.timed_out) {
-      printf("  - Timeout.\n");
-    } else if (res.ttl_exceeded) {
-      printf("Reply from %d.%d.%d.%d: Time to live exceeded\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3]);
-    } else {
-      printf("ERROR!.\n");
-      exit(1);
+    switch (res.result) {
+      case REPLY_SUCCESS:
+        printf("Reply from %d.%d.%d.%d: ttl=%d time=%.3fms\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3], res.ttl, res.elapsed_time_in_ms);
+        break;
+      case REPLY_TTL_EXCEEDED:
+        printf("Reply from %d.%d.%d.%d: Time to live exceeded\n", res.source_ip[0], res.source_ip[1], res.source_ip[2], res.source_ip[3]);
+        break;
+      case REPLY_TIMEOUT:
+        printf("  - Timeout.\n");
+        break;
+      default:
+        printf("  - Error handling ICMP reply %d.\n", res.result);
+        exit(1);
+        break;
     }
   }
 
