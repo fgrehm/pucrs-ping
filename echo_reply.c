@@ -45,12 +45,14 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     if (!icmp_valid(packet, req, res))
       continue;
 
-    long sec_diff_in_usec = (now.tv_sec - req.sent_at.tv_sec) * 1000000;
-    long usec_diff        = abs(sec_diff_in_usec + now.tv_usec - req.sent_at.tv_usec);
-    res->elapsed_time_in_ms = usec_diff / 1000.0;
-
-    if (res->result == -1)
+    if (res->result == REPLY_UNSET)
       res->result = REPLY_SUCCESS;
+
+    if (res->result == REPLY_SUCCESS) {
+      long sec_diff_in_usec = (now.tv_sec - req.sent_at.tv_sec) * 1000000;
+      long usec_diff        = abs(sec_diff_in_usec + now.tv_usec - req.sent_at.tv_usec);
+      res->elapsed_time_in_ms = usec_diff / 1000.0;
+    }
 
     break;
   }

@@ -3,6 +3,7 @@
 
 #include "constants.h"
 
+#define REPLY_UNSET -1
 #define REPLY_SUCCESS 1
 #define REPLY_TTL_EXCEEDED 2
 #define REPLY_TIMEOUT 3
