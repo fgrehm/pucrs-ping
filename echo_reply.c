@@ -47,7 +47,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     // Check if the packet type is an IPv4
     short ether_type;
     CONSUME_BYTES(bufferptr, &ether_type, sizeof(ether_type));
-    printf("ether type: %d\n", ether_type);
     if (ether_type != 8) // IP
       continue;
 
@@ -57,7 +56,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     // Check if is V4 and has 20 bytes on the header
     char ip_version_and_header_length;
     CONSUME_BYTES(bufferptr, &ip_version_and_header_length, sizeof(ip_version_and_header_length));
-    printf("version and header length: %x\n", ip_version_and_header_length);
     if (ip_version_and_header_length != 0x45)
       continue;
 
@@ -68,19 +66,16 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     unsigned short total_packet_length;
     CONSUME_BYTES(bufferptr, &total_packet_length, sizeof(total_packet_length));
     total_packet_length = ntohs(total_packet_length);
-    printf("  - total packet length %d\n", total_packet_length);
 
     // Move forward some bytes that represents some stuff we don't care about
     bufferptr += 4; // 2 for packet ID, 2 for flags and offset
 
     // Extract ttl
     CONSUME_BYTES(bufferptr, &ttl, sizeof(ttl));
-    printf("  - ttl %d\n", ttl);
 
     // Check if the protocol is ICMP
     unsigned char protocol;
     CONSUME_BYTES(bufferptr, &protocol, sizeof(protocol));
-    printf("  - protocol %d\n", protocol);
     if (protocol != 1)
       continue;
 
@@ -89,13 +84,11 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     unsigned char *checksum_ptr = bufferptr;
     CONSUME_BYTES(bufferptr, &checksum, sizeof(checksum));
     checksum = ntohs(checksum);
-    printf("  - checksum %x\n", checksum);
     // Go back to the checksum start and zero it out in order to validate the message
     memset(checksum_ptr, 0, sizeof(checksum));
     // Calculate the checksum with the info we have
     unsigned short calculated_checksum = in_cksum((short unsigned int *)ip_start_ptr, IP_HEADER_LEN);
     calculated_checksum = ntohs(calculated_checksum);
-    printf("  - calculated checksum %x\n", calculated_checksum);
 
     if (checksum != calculated_checksum)
       continue;
@@ -103,12 +96,10 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     // Source IP
     unsigned char source_ip[IP_ADDR_LEN];
     CONSUME_BYTES(bufferptr, source_ip, IP_ADDR_LEN * sizeof(unsigned char));
-    printf("  - source ip %d.%d.%d.%d\n", source_ip[0], source_ip[1], source_ip[2], source_ip[3]);
 
     // Target IP (us)
     unsigned char target_ip[IP_ADDR_LEN];
     CONSUME_BYTES(bufferptr, target_ip, IP_ADDR_LEN * sizeof(unsigned char));
-    printf("  - target ip %d.%d.%d.%d\n", target_ip[0], target_ip[1], target_ip[2], target_ip[3]);
     // Does the IP match?
     for (i = 0; i < IP_ADDR_LEN; i++) {
       if (target_ip[i] != req.local_ip[i]) {
@@ -125,12 +116,10 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     // Is it an echo reply with code = 0?
     unsigned char icmp_type;
     CONSUME_BYTES(bufferptr, &icmp_type, sizeof(icmp_type));
-    printf("  - ICMP type: %d\n", icmp_type);
     if (icmp_type != 0)
       continue;
     unsigned char code;
     CONSUME_BYTES(bufferptr, &code, sizeof(code));
-    printf("  - Code: %d\n", code);
     if (code != 0)
       continue;
 
@@ -138,13 +127,11 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     checksum_ptr = bufferptr;
     CONSUME_BYTES(bufferptr, &checksum, sizeof(checksum));
     checksum = ntohs(checksum);
-    printf("  - ICMP checksum %x\n", checksum);
     // Go back to the checksum start and zero it out in order to validate the message
     memset(checksum_ptr, 0, sizeof(checksum));
     // Calculate the checksum with the info we have
     calculated_checksum = in_cksum((short unsigned int *)icmp_start_ptr, total_packet_length - 20);
     calculated_checksum = ntohs(calculated_checksum);
-    printf("  - ICMP calculated checksum %x\n", calculated_checksum);
     if (checksum != calculated_checksum)
       continue;
 
@@ -152,7 +139,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     unsigned short identifier;
     CONSUME_BYTES(bufferptr, &identifier, sizeof(identifier));
     identifier = ntohs(identifier);
-    printf("  - ICMP identifier %x\n", identifier);
     if (identifier != req.identifier) {
       continue;
     }
@@ -161,14 +147,9 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     unsigned short sequence_number;
     CONSUME_BYTES(bufferptr, &sequence_number, sizeof(sequence_number));
     sequence_number = ntohs(sequence_number);
-    printf("  - ICMP sequence_number %x\n", sequence_number);
     if (sequence_number != req.sequence_number) {
       continue;
     }
-
-    // It is a reply, so we calculate the time elapsed and break out of the loop
-    printf("  - Packet time: %lu.%lu\n", req.sent_at.tv_sec, req.sent_at.tv_usec);
-    printf("  - Now time:    %lu.%lu\n", now.tv_sec, now.tv_usec);
 
     long sec_diff  = now.tv_sec - req.sent_at.tv_sec;
     long usec_diff = now.tv_usec - req.sent_at.tv_usec;
@@ -177,7 +158,6 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
       usec_diff += sec_diff * 100000;
     }
 
-    printf("  - Diff: %0.3fms\n", usec_diff / 1000.0);
     break;
   }
 
