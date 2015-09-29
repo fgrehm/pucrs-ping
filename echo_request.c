@@ -8,7 +8,7 @@
 #include "io.h"
 
 char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *local_mac);
-char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_ip);
+char *write_ipv4(char *bufferptr, unsigned short identifier, unsigned char *local_ip, unsigned char *dest_ip);
 char *write_icmp(char *bufferptr, unsigned short identifier);
 
 unsigned short sequence_number = 1;
@@ -19,7 +19,7 @@ echo_request_t prepare_echo_request(unsigned short identifier, unsigned char *lo
 
   // Prepare packet data as needed
   bufferptr = write_ethernet(bufferptr, dest_mac, local_mac);
-  bufferptr = write_ipv4(bufferptr, local_ip, dest_ip);
+  bufferptr = write_ipv4(bufferptr, identifier + sequence_number, local_ip, dest_ip);
   bufferptr = write_icmp(bufferptr, identifier);
 
   echo_request_t req = {
@@ -49,7 +49,7 @@ char *write_ethernet(char *bufferptr, unsigned char *dest_mac, unsigned char *lo
 }
 
 // Write the IPv4 headers
-char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_ip) {
+char *write_ipv4(char *bufferptr, unsigned short identifier, unsigned char *local_ip, unsigned char *dest_ip) {
   // Grab a reference to the beggining of the header so we can come back and
   // calculate the checksum
   char *start = bufferptr;
@@ -64,7 +64,7 @@ char *write_ipv4(char *bufferptr, unsigned char *local_ip, unsigned char *dest_i
   APPEND_SHORT(bufferptr, IP_LEN);
 
   // ID
-  APPEND_SHORT(bufferptr, 1000);
+  APPEND_SHORT(bufferptr, identifier);
 
   // Flags (don't fragment)
   APPEND_BYTE(bufferptr, 0x40);
