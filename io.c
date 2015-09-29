@@ -1,4 +1,5 @@
 #include <string.h>
+#include <arpa/inet.h>
 #include "io.h"
 
 void *consume_bytes(void *buffer_ptr, void *target_ptr, int num_bytes) {

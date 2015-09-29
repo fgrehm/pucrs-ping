@@ -25,7 +25,6 @@ echo_request_t prepare_echo_request(unsigned short identifier, unsigned char *lo
   echo_request_t req = {
     .identifier      = identifier,
     .sequence_number = sequence_number++,
-    .timestamp       = 0,
     .local_mac       = local_mac,
     .local_ip        = local_ip,
     .raw_packet      = buffer

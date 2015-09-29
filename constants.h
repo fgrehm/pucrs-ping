@@ -11,7 +11,7 @@
 #define INTERFACE_INDEX 2
 #define INTERFACE_NAME "wlan0"
 #define TTL 64
-#define TOTAL_PACKETS 2
+#define TOTAL_PACKETS 6
 #define MAX_WAIT_SEC 2
 
 #endif

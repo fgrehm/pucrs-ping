@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include "checksum.h"
 #include "echo_request.h"
 #include "echo_reply.h"
@@ -14,6 +16,14 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
 
   for (;;) {
     recv(sock_fd,(char *) &buffer, sizeof(buffer), 0x0);
+
+    // Capture the time we received the message so we can calculate the time
+    // elapsed at the end
+    struct timeval now;
+    if (gettimeofday(&now, NULL) < 0) {
+      printf("Error getting the current time\n");
+      exit(1);
+    }
 
     // Check if destination MAC address is our interface
     int i, match = 1;
@@ -109,17 +119,66 @@ reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
     if (match != 1)
       continue;
 
-    // Check if the reply is for us
+    // Reference to where the ICMP section starts
+    unsigned char *icmp_start_ptr = bufferptr;
 
-    // TODO: Calculate time elapsed
+    // Is it an echo reply with code = 0?
+    unsigned char icmp_type;
+    CONSUME_BYTES(bufferptr, &icmp_type, sizeof(icmp_type));
+    printf("  - ICMP type: %d\n", icmp_type);
+    if (icmp_type != 0)
+      continue;
+    unsigned char code;
+    CONSUME_BYTES(bufferptr, &code, sizeof(code));
+    printf("  - Code: %d\n", code);
+    if (code != 0)
+      continue;
 
-    if (match) {
-      printf("  - TODO: Finish parsing echo reply\n");
-      // Verifica se protocolo eh ICMP
-      // Verifica se identificador eh igual ao enviado
-      // Calcula o q tem q calcular
-      break;
+    // Is the checksum for the ICMP header correct?
+    checksum_ptr = bufferptr;
+    CONSUME_BYTES(bufferptr, &checksum, sizeof(checksum));
+    checksum = ntohs(checksum);
+    printf("  - ICMP checksum %x\n", checksum);
+    // Go back to the checksum start and zero it out in order to validate the message
+    memset(checksum_ptr, 0, sizeof(checksum));
+    // Calculate the checksum with the info we have
+    calculated_checksum = in_cksum((short unsigned int *)icmp_start_ptr, total_packet_length - 20);
+    calculated_checksum = ntohs(calculated_checksum);
+    printf("  - ICMP calculated checksum %x\n", calculated_checksum);
+    if (checksum != calculated_checksum)
+      continue;
+
+    // Identifier matches?
+    unsigned short identifier;
+    CONSUME_BYTES(bufferptr, &identifier, sizeof(identifier));
+    identifier = ntohs(identifier);
+    printf("  - ICMP identifier %x\n", identifier);
+    if (identifier != req.identifier) {
+      continue;
     }
+
+    // Sequence number matches?
+    unsigned short sequence_number;
+    CONSUME_BYTES(bufferptr, &sequence_number, sizeof(sequence_number));
+    sequence_number = ntohs(sequence_number);
+    printf("  - ICMP sequence_number %x\n", sequence_number);
+    if (sequence_number != req.sequence_number) {
+      continue;
+    }
+
+    // It is a reply, so we calculate the time elapsed and break out of the loop
+    printf("  - Packet time: %lu.%lu\n", req.sent_at.tv_sec, req.sent_at.tv_usec);
+    printf("  - Now time:    %lu.%lu\n", now.tv_sec, now.tv_usec);
+
+    long sec_diff  = now.tv_sec - req.sent_at.tv_sec;
+    long usec_diff = now.tv_usec - req.sent_at.tv_usec;
+
+    if (sec_diff > 0) {
+      usec_diff += sec_diff * 100000;
+    }
+
+    printf("  - Diff: %0.3fms\n", usec_diff / 1000.0);
+    break;
   }
 
   reply_response_t res = {

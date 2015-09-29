@@ -6,7 +6,7 @@
 typedef struct {
   unsigned short identifier;
   unsigned short sequence_number;
-  long timestamp;
+  struct timeval sent_at;
   unsigned char *local_mac;
   unsigned char *local_ip;
   char *raw_packet;

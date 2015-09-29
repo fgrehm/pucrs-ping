@@ -1,5 +1,4 @@
 #include <errno.h>
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +9,7 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include "constants.h"
 #include "echo_request.h"
 #include "echo_reply.h"
@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
 
   // This helps us identify our requests
   unsigned short identifier = getpid();
+  printf("identifier: %d\n", identifier);
 
   int i;
   for (i = 0; i < TOTAL_PACKETS; i++) {
@@ -58,6 +59,10 @@ int main(int argc, char *argv[]) {
     int send_result = send_packet(dest_mac, req.raw_packet, BUFFER_LEN);
     if (send_result < 0) {
       printf("ERROR sending packet: %d\n", send_result);
+      exit(1);
+    }
+    if (gettimeofday(&req.sent_at, NULL) < 0) {
+      printf("Error getting the current time\n");
       exit(1);
     }
     printf("\n[%d] Send success (%d).\n", i+1, send_result);
