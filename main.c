@@ -50,21 +50,20 @@ int main(int argc, char *argv[]) {
   // This helps us identify our requests
   unsigned short identifier = getpid();
   printf("PID: %d\n", identifier);
-  printf("TODO: Send 64 bytes worth of data.\n");
-  printf("TODO: Implement support for --ttl.\n");
   printf("TODO: Implement support for --iface-name.\n");
   printf("TODO: Implement support for --iface-index.\n");
+  printf("TODO: Implement support for --ttl.\n");
 
   int i;
   for (i = 0; i < TOTAL_PACKETS; i++) {
     echo_request_t req = prepare_echo_request(identifier, local_ip, local_mac, dest_ip, dest_mac);
     if (gettimeofday(&req.sent_at, NULL) < 0) {
-      printf("Error getting the current time\n");
+      printf("FATAL: Error getting the current time\n");
       exit(1);
     }
-    int send_result = send_packet(dest_mac, req.raw_packet, BUFFER_LEN);
+    int send_result = send_packet(dest_mac, req.raw_packet, PACKET_LEN);
     if (send_result < 0) {
-      printf("ERROR sending packet: %d\n", send_result);
+      printf("FATAL: Error sending packet %d\n", send_result);
       exit(1);
     }
     printf("[%d] ", i+1);

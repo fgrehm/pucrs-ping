@@ -18,7 +18,7 @@ unsigned char icmp_valid(unsigned char *packet, echo_request_t req, reply_respon
 extern int errno;
 
 reply_response_t wait_for_icmp_reply(int sock_fd, echo_request_t req) {
-  unsigned char buffer[BUFFER_LEN*2];
+  unsigned char buffer[BUFFER_LEN];
   reply_response_t *res = malloc(sizeof(reply_response_t));
 
   for (;;) {
