@@ -50,9 +50,6 @@ int main(int argc, char *argv[]) {
   // This helps us identify our requests
   unsigned short identifier = getpid();
   printf("PID: %d\n", identifier);
-  printf("TODO: Implement support for --iface-name.\n");
-  printf("TODO: Implement support for --iface-index.\n");
-  printf("TODO: Implement support for --ttl.\n");
 
   int i;
   for (i = 0; i < TOTAL_PACKETS; i++) {
